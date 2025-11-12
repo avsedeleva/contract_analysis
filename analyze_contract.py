@@ -61,7 +61,7 @@ class BscScanScraper:
         options.binary_location = '/usr/bin/chromium-browser'
         # Для Selenium 4.x и выше
         from selenium.webdriver.chrome.service import Service
-        service = Service()
+        service = Service('/usr/bin/chromedriver')
 
         driver = webdriver.Chrome(service=service, options=options)
 
