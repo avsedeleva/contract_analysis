@@ -56,7 +56,16 @@ class BscScanScraper:
         options.add_argument('--disable-gpu')
         options.add_argument('--remote-debugging-port=9222')
 
-        driver = webdriver.Chrome(options=options)
+        # Явно укажите путь к Chrome
+        options.binary_location = '/usr/bin/google-chrome'
+
+        # Для Selenium 4.x и выше
+        from selenium.webdriver.chrome.service import Service
+        service = Service()
+
+        driver = webdriver.Chrome(service=service, options=options)
+
+        #driver = webdriver.Chrome(options=options)
         driver.get(url)
         time.sleep(8)
         html = driver.page_source
