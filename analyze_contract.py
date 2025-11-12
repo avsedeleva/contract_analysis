@@ -58,7 +58,7 @@ class BscScanScraper:
 
         # Явно укажите путь к Chrome
         #options.binary_location = '/usr/bin/google-chrome'
-        options.binary_location = '/usr/bin/chromium'
+        options.binary_location = '/usr/bin/chromium-browser'
         # Для Selenium 4.x и выше
         from selenium.webdriver.chrome.service import Service
         service = Service()
