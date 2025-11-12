@@ -9,6 +9,13 @@ import re
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium_stealth import stealth
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+import time
 
 
 class BscScanScraper:
@@ -45,59 +52,123 @@ class BscScanScraper:
             return None
 
     def get_top_holders_page(self, contract):
-        url = f"https://bscscan.com/token/tokenholderchart/{contract}"
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--remote-debugging-port=9222')
-
-        # Добавляем опции для обхода защиты
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-        options.add_argument(
-            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-
-        options.binary_location = '/usr/bin/chromium-browser'
-        from selenium.webdriver.chrome.service import Service
-        service = Service('/usr/bin/chromedriver')
-
-        driver = webdriver.Chrome(service=service, options=options)
-        # Применяем stealth ДО открытия страницы
         try:
-            from selenium_stealth import stealth
-            stealth(driver,
-                    languages=["en-US", "en"],
-                    vendor="Google Inc.",
-                    platform="Win32",
-                    webgl_vendor="Intel Inc.",
-                    renderer="Intel Iris OpenGL Engine",
-                    fix_hairline=True,
-                    )
-        except ImportError:
-            print("⚠ selenium-stealth not installed, using basic evasion")
-            # Базовый обход без библиотеки
-            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            url = f"https://bscscan.com/token/tokenholderchart/{contract}"
+            options = webdriver.ChromeOptions()
+            options.add_argument('--headless=new')  # Новый headless режим
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--remote-debugging-port=9222')
 
-        print(f"Opening URL: {url}")
-        driver.get(url)
+            # Опции для обхода защиты
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
 
-        # Улучшенное ожидание с проверкой загрузки
-        time.sleep(8)
+            # Реалистичный user-agent
+            options.add_argument(
+                '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-        # Проверяем, что страница загрузилась
-        if "bscscan.com" in driver.current_url and len(driver.page_source) > 1000:
-            print("✓ Page loaded successfully")
-        else:
-            print("⚠ Page might not have loaded correctly")
-            print(f"Current URL: {driver.current_url}")
-            print(f"Page source length: {len(driver.page_source)}")
+            # Дополнительные опции для скрытия
+            options.add_argument('--disable-web-security')
+            options.add_argument('--allow-running-insecure-content')
+            options.add_argument('--disable-extensions')
+            options.add_argument('--disable-plugins')
+            options.add_argument('--disable-images')
+            options.add_argument('--blink-settings=imagesEnabled=false')
 
-        html = driver.page_source
-        driver.quit()
-        return html
+            # Язык и регион
+            options.add_argument('--lang=en-US,en;q=0.9')
+
+            # Указываем браузер
+            options.binary_location = '/usr/bin/chromium-browser'
+
+            service = Service('/usr/bin/chromedriver')
+
+            driver = webdriver.Chrome(service=service, options=options)
+
+            # Удаляем свойства webdriver ДО загрузки страницы
+            driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+                'source': '''
+                           Object.defineProperty(navigator, 'webdriver', {
+                               get: () => undefined
+                           });
+                           Object.defineProperty(navigator, 'plugins', {
+                               get: () => [1, 2, 3, 4, 5]
+                           });
+                           Object.defineProperty(navigator, 'languages', {
+                               get: () => ['en-US', 'en']
+                           });
+                       '''
+            })
+
+            print(f"🔄 Opening BSCscan: {url}")
+
+            try:
+                driver.get(url)
+
+                # Ждем загрузки с проверками
+                wait = WebDriverWait(driver, 15)
+
+                # Проверяем разные элементы которые должны быть на странице
+                selectors_to_check = [
+                    "//div[contains(@class, 'card')]",
+                    "//table",
+                    "//div[contains(text(), 'Holders')]",
+                    "//body"
+                ]
+
+                page_loaded = False
+                for selector in selectors_to_check:
+                    try:
+                        wait.until(EC.presence_of_element_located((By.XPATH, selector)))
+                        print(f"✓ Found element: {selector}")
+                        page_loaded = True
+                        break
+                    except:
+                        continue
+
+                if not page_loaded:
+                    print("⚠ No expected elements found, but continuing...")
+
+                # Дополнительное время для JS
+                time.sleep(3)
+
+                # Проверяем содержимое страницы
+                html = driver.page_source
+                current_url = driver.current_url
+
+                print(f"📊 Page source length: {len(html)}")
+                print(f"🌐 Current URL: {current_url}")
+
+                # Проверяем не попали ли мы на капчу или блокировку
+                if "captcha" in html.lower() or "cloudflare" in html.lower():
+                    print("❌ CAPTCHA or Cloudflare detected")
+                    return None
+
+                if "access denied" in html.lower():
+                    print("❌ Access denied by BSCscan")
+                    return None
+
+                if len(html) < 1000:
+                    print("❌ Page content too short")
+                    return None
+
+                print("✅ Page loaded successfully")
+                return html
+
+            except Exception as page_error:
+                print(f"❌ Page loading error: {page_error}")
+                return None
+
+            finally:
+                driver.quit()
+
+        except Exception as e:
+            print(f"❌ Selenium setup error: {e}")
+        
+
         """Получить HTML страницы контракта
         url = f"https://bscscan.com/token/tokenholderchart/{contract}"
         '''options = Options()
