@@ -8,6 +8,7 @@ import re
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium_stealth import stealth
 
 
 class BscScanScraper:
@@ -44,7 +45,60 @@ class BscScanScraper:
             return None
 
     def get_top_holders_page(self, contract):
-        """Получить HTML страницы контракта"""
+        url = f"https://bscscan.com/token/tokenholderchart/{contract}"
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--remote-debugging-port=9222')
+
+        # Добавляем опции для обхода защиты
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        options.add_argument(
+            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+        options.binary_location = '/usr/bin/chromium-browser'
+        from selenium.webdriver.chrome.service import Service
+        service = Service('/usr/bin/chromedriver')
+
+        driver = webdriver.Chrome(service=service, options=options)
+        # Применяем stealth ДО открытия страницы
+        try:
+            from selenium_stealth import stealth
+            stealth(driver,
+                    languages=["en-US", "en"],
+                    vendor="Google Inc.",
+                    platform="Win32",
+                    webgl_vendor="Intel Inc.",
+                    renderer="Intel Iris OpenGL Engine",
+                    fix_hairline=True,
+                    )
+        except ImportError:
+            print("⚠ selenium-stealth not installed, using basic evasion")
+            # Базовый обход без библиотеки
+            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        print(f"Opening URL: {url}")
+        driver.get(url)
+
+        # Улучшенное ожидание с проверкой загрузки
+        time.sleep(8)
+
+        # Проверяем, что страница загрузилась
+        if "bscscan.com" in driver.current_url and len(driver.page_source) > 1000:
+            print("✓ Page loaded successfully")
+        else:
+            print("⚠ Page might not have loaded correctly")
+            print(f"Current URL: {driver.current_url}")
+            print(f"Page source length: {len(driver.page_source)}")
+
+        html = driver.page_source
+        driver.quit()
+        return html
+        """Получить HTML страницы контракта
         url = f"https://bscscan.com/token/tokenholderchart/{contract}"
         '''options = Options()
         options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
@@ -64,6 +118,16 @@ class BscScanScraper:
         service = Service('/usr/bin/chromedriver')
 
         driver = webdriver.Chrome(service=service, options=options)
+        stealth(driver,
+                languages=["en-US", "en"],
+                vendor="Google Inc.",
+                platform="Win32",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True,
+                )
+
+
 
         #driver = webdriver.Chrome(options=options)
         driver.get(url)
@@ -71,7 +135,7 @@ class BscScanScraper:
         html = driver.page_source
         driver.quit()
         #print(html)
-        return html
+        return html"""
 
     def parse_top_holders(self, html_content):
         """Парсинг топ холдеров из HTML"""

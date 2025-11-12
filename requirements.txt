@@ -8,3 +8,4 @@ selenium==4.36.0
 Telethon==1.40.0
 urllib3==2.5.0
 sty==1.0.4
+selenium-stealth
