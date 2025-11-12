@@ -1,0 +1,9 @@
+telethon==1.40.0
+sty==1.0.4
+aiohttp
+python-dotenv
+aiogram
+aiohttp-socks
+pip install
+beautifulsoup4
+selenium
