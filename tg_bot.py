@@ -1,16 +1,19 @@
+import json
+
 from dotenv import load_dotenv
 from aiogram import Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
-from analyze_contract import BscScanScraper
-
+from bsc import BscScanScraper
+from moralis import MoralisScraper
 
 load_dotenv()
 
 dp = Dispatcher()
-scraper = BscScanScraper()
+bsc_scraper = BscScanScraper()
+mrl_scraper = MoralisScraper()
 # Определение состояний
 class Data(StatesGroup):
     waiting_for_contract = State()
@@ -27,8 +30,7 @@ async def process_contract(message: types.Message, state: FSMContext):
     contract = message.text
     if '0x' not in contract:
         await message.answer("Контракт не корректный, введи еще раз")
-    tokens_dict = scraper.analyze(contract)
-
+    tokens_dict = await analyze(contract)
     for address, tok_list in tokens_dict.items():
         msg = f"<code>{address}</code>\n<i>Chain    Name    USD value</i>\n"
         for tok in tok_list:
@@ -40,6 +42,15 @@ async def process_contract(message: types.Message, state: FSMContext):
 async def select_option(message: types.Message, state: FSMContext):
     await message.answer('Введи контракт')
     await state.set_state(Data.waiting_for_contract)
+
+async def analyze(contract):
+    holders_list = mrl_scraper.get_top_holders(contract)
+    tokens_dict = {}
+    for holder_info in holders_list:
+        tokens = bsc_scraper.get_wallet_balance(holder_info.get('address'))
+        tokens_dict[holder_info.get('address')] = tokens
+    print(json.dumps(tokens_dict, indent=4))
+    return tokens_dict
 
 # Запуск бота
 async def main(client_bot, bot):
