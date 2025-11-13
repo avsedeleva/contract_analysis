@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import re
+import undetected_chromedriver as uc
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -55,9 +56,96 @@ class BscScanScraper:
             return None
 
     def get_top_holders_page(self, contract):
+
+
+        """Обход Cloudflare с помощью undetected-chromedriver"""
         try:
             url = f"https://bscscan.com/token/tokenholderchart/{contract}"
-            options = webdriver.ChromeOptions()
+
+            options = uc.ChromeOptions()
+
+            # Настройки для скрытия автоматизации
+            options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_argument('--disable-features=VizDisplayCompositor')
+            options.add_argument('--disable-background-timer-throttling')
+            options.add_argument('--disable-backgrounding-occluded-windows')
+            options.add_argument('--disable-renderer-backgrounding')
+
+            # Для сервера
+            options.add_argument('--headless')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+
+            # Реалистичный user-agent
+            options.add_argument(
+                '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+            print("🔄 Запускаем undetected-chromedriver...")
+
+            driver = uc.Chrome(
+                options=options,
+                driver_executable_path='/usr/bin/chromedriver'
+            )
+
+            # Устанавливаем таймауты
+            driver.set_page_load_timeout(30)
+
+            print(f"🌐 Открываем: {url}")
+            driver.get(url)
+
+            # Ждем загрузки контента
+            wait = WebDriverWait(driver, 20)
+
+            # Проверяем разные элементы которые должны быть на странице
+            content_indicators = [
+                (By.XPATH, "//table//tr"),
+                (By.XPATH, "//div[contains(@class, 'card')]"),
+                (By.XPATH, "//a[contains(@href, 'address')]"),
+                (By.TAG_NAME, "table")
+            ]
+
+            content_loaded = False
+            for by, selector in content_indicators:
+                try:
+                    wait.until(EC.presence_of_element_located((by, selector)))
+                    print(f"✅ Найден контент: {selector}")
+                    content_loaded = True
+                    break
+                except:
+                    continue
+
+            if not content_loaded:
+                print("⚠ Контент не найден, проверяем что загрузилось...")
+                '''# Сохраняем для отладки
+                with open('/tmp/debug_page.html', 'w') as f:
+                    f.write(driver.page_source)
+                print("💾 HTML сохранен в /tmp/debug_page.html")'''
+                print(driver.page_source)
+
+            # Дополнительное время для JS
+            time.sleep(3)
+
+            html_content = driver.page_source
+
+            # Проверяем успешность
+            if "Holders" in html_content and len(html_content) > 10000:
+                print("✅ Страница успешно загружена!")
+                return html_content
+            else:
+                print("❌ Контент не содержит нужных данных")
+                return None
+
+        except Exception as e:
+            print(f"❌ Ошибка: {e}")
+            return None
+        finally:
+            try:
+                driver.quit()
+            except:
+                pass
+            '''options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')  # Новый headless режим
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
@@ -93,7 +181,7 @@ class BscScanScraper:
 
             # Удаляем свойства webdriver ДО загрузки страницы
             driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-                'source': '''
+                'source': 
                            Object.defineProperty(navigator, 'webdriver', {
                                get: () => undefined
                            });
@@ -103,7 +191,7 @@ class BscScanScraper:
                            Object.defineProperty(navigator, 'languages', {
                                get: () => ['en-US', 'en']
                            });
-                       '''
+                       
             })
 
             print(f"🔄 Opening BSCscan: {url}")
@@ -169,7 +257,7 @@ class BscScanScraper:
                 driver.quit()
 
         except Exception as e:
-            print(f"❌ Selenium setup error: {e}")
+            print(f"❌ Selenium setup error: {e}")'''
 
 
         """Получить HTML страницы контракта
