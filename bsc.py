@@ -12,9 +12,9 @@ class BscScanScraper:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
-        self.session.proxies.update({
+        '''self.session.proxies.update({
             "http": "http://qWD41r:JdCPrA@196.19.121.132:8000"
-        })
+        })'''
         self.wallets_dict = {}
 
 
@@ -32,6 +32,7 @@ class BscScanScraper:
         try:
             response = self.session.get(url)
             response.raise_for_status()
+            print('OK')
             return response.text
         except requests.RequestException as e:
             print(f"Ошибка запроса: {e}")
