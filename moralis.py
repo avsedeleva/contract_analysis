@@ -79,6 +79,9 @@ class MoralisScraper:
 
     def get_top_holders(self, contract, input_contract_number):
         self.contract = contract
+        self.holders = []
+        self.top_tokens = {}
+        self.number = 0
         url = f"https://deep-index.moralis.io/api/v2.2/erc20/{contract}/owners?chain=bsc&limit={input_contract_number}&order=DESC"
         response = requests.request("GET", url, headers=self.headers)
         count = 0

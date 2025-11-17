@@ -12,8 +12,8 @@ from moralis import MoralisScraper
 load_dotenv()
 
 dp = Dispatcher()
-bsc_scraper = BscScanScraper()
 mrl_scraper = MoralisScraper()
+
 # Определение состояний
 class Data(StatesGroup):
     waiting_for_contract = State()
