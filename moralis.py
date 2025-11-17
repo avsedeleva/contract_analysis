@@ -19,6 +19,7 @@ class MoralisScraper:
         self.top_tokens= {}
         self.number = 0
         self.contract = None
+        self.name = None
 
     def get_wallet_balance(self, wallet_address):
         tokens = []
@@ -75,6 +76,8 @@ class MoralisScraper:
                         }
                     else:
                         self.top_tokens[i]['number'] += 1
+                else:
+                    self.name = tok['name']
 
             return token_list
         return
@@ -84,6 +87,7 @@ class MoralisScraper:
         self.holders = []
         self.top_tokens = {}
         self.number = 0
+        self.name = None
         url = f"https://deep-index.moralis.io/api/v2.2/erc20/{contract}/owners?chain=bsc&limit={input_contract_number}&order=DESC"
         response = requests.request("GET", url, headers=self.headers)
         count = 0
@@ -110,6 +114,9 @@ class MoralisScraper:
         if len(sorted_info) > 30:
             return sorted_info[0:30]
         return sorted_info
+
+    def get_name(self):
+        return self.name
 
 wallet_address = '0x6f6c1073266902197350463620591c0ff9467e85'#'0x7485e27650058d22590ccdee1a86604c71dd8ad8'#'0xd17974cd64ad371b387baeaef2f27c0e8e67f159' #'0x4858821da3a75c001a895072305b774af7a494d9'
 contract = "0xd98438889Ae7364c7E2A3540547Fad042FB24642"

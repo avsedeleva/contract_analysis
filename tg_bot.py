@@ -33,8 +33,13 @@ async def process_contract(message: types.Message, state: FSMContext):
         await message.answer("Контракт не корректный, введи еще раз")
     tokens_dict = await analyze(contract, input_number_contract)
     top_tokens = mrl_scraper.get_top_tokens()
-    msg_general = (f'{len(tokens_dict)}/{input_number_contract} contracts\n'
-                   f'TOP 20 TOKENS\n')
+    name = mrl_scraper.get_name()
+    msg_general = (
+        f'<a href="https://bscscan.com/address/{contract}"><b>{name}</b></a>\n'
+        f'{len(tokens_dict)}/{input_number_contract} holders\n'
+        f'TOP 30 TOKENS\n'
+                   )
+
     for tok in top_tokens:
         if tok["chain"] == 'bsc':
             msg_general += f'{tok["chain"]} <a href="https://bscscan.com/address/{tok["address"]}"><b>{tok["name"]}</b></a>: {tok["number"]}\n'
