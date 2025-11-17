@@ -38,6 +38,8 @@ class MoralisScraper:
                 #print(data)
             except:
                 continue
+            if not data:
+                continue
             for info in data:
                 #print(info)
                 if info['possible_spam'] or info['security_score'] is None:
